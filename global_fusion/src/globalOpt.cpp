@@ -40,12 +40,18 @@ void GlobalOptimization::GPS2XYZ(double latitude, double longitude, double altit
 void GlobalOptimization::inputOdom(double t, Eigen::Vector3d OdomP, Eigen::Quaterniond OdomQ)
 {
 	mPoseMap.lock();
+
+     // 把vio直接输出的位姿存入 localPoseMap 中
     vector<double> localPose{OdomP.x(), OdomP.y(), OdomP.z(), 
     					     OdomQ.w(), OdomQ.x(), OdomQ.y(), OdomQ.z()};
     localPoseMap[t] = localPose;
 
 
     Eigen::Quaterniond globalQ;
+      /// 把VIO转换到GPS坐标系下，准确的说是转换到以第一帧GPS为原点的坐标系下（因为这个变换矩阵是根据第一帧的gps数据转换得到的）
+    /// 转换之后的位姿插入到globalPoseMap 中,WGPS_T_WVIO矩阵是视觉到gps坐标系下的转换矩阵，
+    // 视觉是以第一帧为它的坐标系原点（即为相机的世界坐标系），OdomQ求的当前帧的位姿是相对于相机的世界坐标系的
+    // WGPS_T_WVIO求的就是相机的世界坐标系到GPS世界坐标系的变换矩阵
     globalQ = WGPS_T_WVIO.block<3, 3>(0, 0) * OdomQ;
     Eigen::Vector3d globalP = WGPS_T_WVIO.block<3, 3>(0, 0) * OdomP + WGPS_T_WVIO.block<3, 1>(0, 3);
     vector<double> globalPose{globalP.x(), globalP.y(), globalP.z(),
