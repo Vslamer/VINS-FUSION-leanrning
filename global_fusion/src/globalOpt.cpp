@@ -52,6 +52,7 @@ void GlobalOptimization::inputOdom(double t, Eigen::Vector3d OdomP, Eigen::Quate
     /// 转换之后的位姿插入到globalPoseMap 中,WGPS_T_WVIO矩阵是视觉到gps坐标系下的转换矩阵，
     // 视觉是以第一帧为它的坐标系原点（即为相机的世界坐标系），OdomQ求的当前帧的位姿是相对于相机的世界坐标系的
     // WGPS_T_WVIO求的就是相机的世界坐标系到GPS世界坐标系的变换矩阵
+    // 得到视觉到gps的位姿
     globalQ = WGPS_T_WVIO.block<3, 3>(0, 0) * OdomQ;
     Eigen::Vector3d globalP = WGPS_T_WVIO.block<3, 3>(0, 0) * OdomP + WGPS_T_WVIO.block<3, 1>(0, 3);
     vector<double> globalPose{globalP.x(), globalP.y(), globalP.z(),
@@ -231,6 +232,7 @@ void GlobalOptimization::optimize()
             	iter->second = globalPose;
             	if(i == length - 1)
             	{
+                    // 这个body指的哪里？
             	    Eigen::Matrix4d WVIO_T_body = Eigen::Matrix4d::Identity(); 
             	    Eigen::Matrix4d WGPS_T_body = Eigen::Matrix4d::Identity();
             	    double t = iter->first;
@@ -240,7 +242,8 @@ void GlobalOptimization::optimize()
             	    WGPS_T_body.block<3, 3>(0, 0) = Eigen::Quaterniond(globalPose[3], globalPose[4], 
             	                                                        globalPose[5], globalPose[6]).toRotationMatrix();
             	    WGPS_T_body.block<3, 1>(0, 3) = Eigen::Vector3d(globalPose[0], globalPose[1], globalPose[2]);
-            	    WGPS_T_WVIO = WGPS_T_body * WVIO_T_body.inverse();
+            	    // 
+                    WGPS_T_WVIO = WGPS_T_body * WVIO_T_body.inverse();
             	}
             }
             updateGlobalPath();
